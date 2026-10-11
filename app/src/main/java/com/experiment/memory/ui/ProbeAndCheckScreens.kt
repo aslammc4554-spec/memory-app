@@ -7,6 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.random.Random
 
 @Composable
 fun ProbeScreen(
@@ -50,7 +51,12 @@ data class ProbeData(
     val rightOption: String
 )
 
-fun generateProbe(words: List<String>, targetPosition: Int, probeType: String): ProbeData {
+fun generateProbe(
+    words: List<String>,
+    targetPosition: Int,
+    probeType: String,
+    random: Random = Random.Default
+): ProbeData {
     if (words.size < 2) {
         return ProbeData("Word", "Answer", "Answer", "Wrong")
     }
@@ -61,16 +67,16 @@ fun generateProbe(words: List<String>, targetPosition: Int, probeType: String): 
         targetIndex
     } else {
         val possibleIndices = (1 until words.size).filter { it != targetIndex }
-        if (possibleIndices.isNotEmpty()) possibleIndices.random() else targetIndex
+        if (possibleIndices.isNotEmpty()) possibleIndices.random(random) else targetIndex
     }
 
     val wordAsked = words.getOrElse(testedIndex) { words.last() }
     val correctAnswer = words.getOrElse(testedIndex - 1) { words.first() }
 
     val possibleWrong = words.filter { it != correctAnswer && it != wordAsked }
-    val wrongOption = if (possibleWrong.isNotEmpty()) possibleWrong.random() else "Other"
+    val wrongOption = if (possibleWrong.isNotEmpty()) possibleWrong.random(random) else "Other"
 
-    val options = listOf(correctAnswer, wrongOption).shuffled()
+    val options = listOf(correctAnswer, wrongOption).shuffled(random)
     return ProbeData(wordAsked, correctAnswer, options[0], options[1])
 }
 

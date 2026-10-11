@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.experiment.memory.data.*
+import com.experiment.memory.service.ProbeAssignmentService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -26,8 +27,10 @@ class ExperimentViewModel(application: Application) : AndroidViewModel(applicati
     fun openAdmin() { _currentScreen.value = ScreenState.ADMIN }
     fun closeAdmin() { _currentScreen.value = ScreenState.WELCOME }
 
-    val participantId = "P-" + java.text.SimpleDateFormat("yyyyMMdd", Locale.US).format(Date()) + "-" + UUID.randomUUID().toString().substring(0, 6).uppercase()
-    val groupCondition = if (Random.nextBoolean()) "Predictable" else "Unpredictable"
+    val sessionManager = SessionManager(application)
+
+    var participantId = "P-" + java.text.SimpleDateFormat("yyyyMMdd", Locale.US).format(Date()) + "-" + UUID.randomUUID().toString().substring(0, 6).uppercase()
+    var groupCondition = if (Random.nextBoolean()) "Predictable" else "Unpredictable"
     var config: ExperimentConfig = ExperimentConfig()
     var wordLists: WordLists = loadDefaultWordLists()
     
@@ -35,6 +38,7 @@ class ExperimentViewModel(application: Application) : AndroidViewModel(applicati
     var listOrder = mutableListOf<Int>()
     var targetPositions = mutableListOf<Int>()
     var probeTypes = mutableListOf<String>()
+    var isProbesAssigned = false
     
     var currentTrialData: TrialDataBuilder? = null
     var sessionStartTime = 0L
@@ -45,27 +49,74 @@ class ExperimentViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     init {
-        // Prepare list orders, target positions, probes
+        val savedSession = sessionManager.loadSession()
+        if (savedSession != null) {
+            participantId = savedSession.participantId
+            groupCondition = savedSession.groupCondition
+            currentListIndex = savedSession.currentListIndex
+            listOrder.addAll(savedSession.listOrder)
+            targetPositions.addAll(savedSession.targetPositions)
+            probeTypes.addAll(savedSession.probeTypes)
+            isProbesAssigned = savedSession.isProbesAssigned
+        } else {
+            initNewSession()
+        }
+    }
+
+    fun initNewSession() {
+        participantId = "P-" + java.text.SimpleDateFormat("yyyyMMdd", Locale.US).format(Date()) + "-" + UUID.randomUUID().toString().substring(0, 6).uppercase()
+        groupCondition = if (Random.nextBoolean()) "Predictable" else "Unpredictable"
+        currentListIndex = 0
+        isProbesAssigned = false
+
+        listOrder.clear()
         val expLists = (1..8).toList().shuffled()
         listOrder.add(0) // practice
         listOrder.addAll(expLists)
         
-        // 8 lists: balance target positions
+        targetPositions.clear()
         val positions = mutableListOf<Int>()
         val basePositions = config.target_positions
         while (positions.size < 8) {
             positions.addAll(basePositions)
         }
         positions.shuffle()
-        
         targetPositions.add(Random.nextInt(4, 8)) // practice
         targetPositions.addAll(positions.take(8))
 
-        // Probes: 4 Critical, 4 Control for the 8 lists
-        val pTypes = mutableListOf("Critical", "Critical", "Critical", "Critical", "Control", "Control", "Control", "Control")
-        pTypes.shuffle()
-        probeTypes.add("Control") // Practice is always Control
-        probeTypes.addAll(pTypes)
+        // Practice is always Control (Requirement 1 & 6)
+        probeTypes.clear()
+        probeTypes.add(ProbeAssignmentService.PROBE_CONTROL)
+
+        sessionManager.saveSession(
+            SessionState(
+                participantId = participantId,
+                groupCondition = groupCondition,
+                currentListIndex = currentListIndex,
+                listOrder = listOrder,
+                targetPositions = targetPositions,
+                probeTypes = probeTypes,
+                isProbesAssigned = false,
+                isPracticeCompleted = false,
+                isFinished = false
+            )
+        )
+    }
+
+    fun assignExperimentalProbes() {
+        if (isProbesAssigned) return
+
+        val expProbes = ProbeAssignmentService.createExperimentalProbeAssignment()
+        probeTypes.clear()
+        probeTypes.add(ProbeAssignmentService.PROBE_CONTROL) // Practice fixed to Control
+        probeTypes.addAll(expProbes)
+        isProbesAssigned = true
+
+        sessionManager.saveProbeAssignments(
+            probeTypes = probeTypes,
+            isProbesAssigned = true,
+            isPracticeCompleted = true
+        )
     }
     
     private fun loadDefaultWordLists(): WordLists {
@@ -167,20 +218,26 @@ class ExperimentViewModel(application: Application) : AndroidViewModel(applicati
             val data = builder.build()
             viewModelScope.launch {
                 db.trialDataDao().insertTrialData(data)
-                currentListIndex++
-                if (isPractice) {
-                    _currentScreen.value = ScreenState.PRACTICE_COMPLETE
-                } else {
-                    startNextTrial()
-                }
+                handleTrialSaved(isPractice)
             }
         } else {
-            currentListIndex++
-            if (isPractice) {
-                _currentScreen.value = ScreenState.PRACTICE_COMPLETE
-            } else {
-                startNextTrial()
+            handleTrialSaved(isPractice)
+        }
+    }
+
+    private fun handleTrialSaved(isPractice: Boolean) {
+        if (isPractice) {
+            // Assign probe types after practice completes, before experimental list 1 begins
+            if (!isProbesAssigned) {
+                assignExperimentalProbes()
             }
+            currentListIndex++
+            sessionManager.updateListIndex(currentListIndex)
+            _currentScreen.value = ScreenState.PRACTICE_COMPLETE
+        } else {
+            currentListIndex++
+            sessionManager.updateListIndex(currentListIndex)
+            startNextTrial()
         }
     }
 
@@ -191,6 +248,7 @@ class ExperimentViewModel(application: Application) : AndroidViewModel(applicati
     fun submitExperiment(dataUseDecision: String) {
         viewModelScope.launch {
             db.trialDataDao().updateDataUseDecision(participantId, dataUseDecision)
+            sessionManager.markFinished()
             _currentScreen.value = ScreenState.FINISHED
         }
     }

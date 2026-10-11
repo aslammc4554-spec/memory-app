@@ -70,7 +70,8 @@ fun AdminScreen(onClose: () -> Unit) {
                     Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                         Column(modifier = Modifier.padding(8.dp)) {
                             Text("Participant: ${data.participant_id} | Group: ${data.group_condition}")
-                            Text("List: ${data.list_number} | Mode: ${data.mode} | Use: ${data.data_use_decision}")
+                            Text("List: ${data.list_number} | Order: ${data.presentation_order} | Probe: ${data.probe_type} | Practice: ${data.practice}")
+                            Text("Mode: ${data.mode} | Use: ${data.data_use_decision}")
                         }
                     }
                 }
