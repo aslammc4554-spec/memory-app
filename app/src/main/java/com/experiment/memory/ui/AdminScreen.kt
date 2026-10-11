@@ -6,9 +6,11 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +32,7 @@ fun AdminScreen(onClose: () -> Unit) {
     val coroutineScope = rememberCoroutineScope()
     var trialData by remember { mutableStateOf<List<TrialData>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var isExporting by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         val db = ExperimentDatabase.getDatabase(context)
@@ -37,44 +40,258 @@ fun AdminScreen(onClose: () -> Unit) {
         isLoading = false
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    // Derived statistics
+    val totalRecords = trialData.size
+    val participantCount = remember(trialData) { trialData.map { it.participant_id }.distinct().size }
+    val criticalCount = remember(trialData) { trialData.count { it.probe_type == "Critical" && it.practice == 0 } }
+    val controlCount = remember(trialData) { trialData.count { it.probe_type == "Control" && it.practice == 0 } }
+    val practiceCount = remember(trialData) { trialData.count { it.practice == 1 } }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            Text("Researcher / Admin Mode", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Button(onClick = onClose) {
-                Text("Close")
+            // Dashboard Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    ) {
+                        Text(
+                            text = "Researcher Dashboard",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(
+                        text = "Data & Admin View",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                Button(
+                    onClick = onClose,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) {
+                    Text("Close")
+                }
             }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(onClick = {
-            coroutineScope.launch {
-                exportDataToCsv(context, trialData)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Metric Summary Cards
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AdminStatCard(title = "Records", value = "$totalRecords", modifier = Modifier.weight(1f))
+                AdminStatCard(title = "Participants", value = "$participantCount", modifier = Modifier.weight(1f))
+                AdminStatCard(title = "Critical", value = "$criticalCount", modifier = Modifier.weight(1f))
+                AdminStatCard(title = "Control", value = "$controlCount", modifier = Modifier.weight(1f))
             }
-        }) {
-            Text("Export Data to CSV")
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        if (isLoading) {
-            CircularProgressIndicator()
-        } else {
-            Text("Total Records: ${trialData.size}")
-            LazyColumn {
-                items(trialData) { data ->
-                    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                        Column(modifier = Modifier.padding(8.dp)) {
-                            Text("Participant: ${data.participant_id} | Group: ${data.group_condition}")
-                            Text("List: ${data.list_number} | Order: ${data.presentation_order} | Probe: ${data.probe_type} | Practice: ${data.practice}")
-                            Text("Mode: ${data.mode} | Use: ${data.data_use_decision}")
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Actions Bar
+            Button(
+                onClick = {
+                    if (!isExporting && trialData.isNotEmpty()) {
+                        isExporting = true
+                        coroutineScope.launch {
+                            exportDataToCsv(context, trialData)
+                            isExporting = false
                         }
                     }
+                },
+                enabled = trialData.isNotEmpty() && !isExporting,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = if (isExporting) "Exporting CSV..." else "Export All Data to CSV (Downloads)",
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Records List
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
+            } else if (trialData.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No experimental records found in local database yet.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Text(
+                    text = "Stored Trial Records ($totalRecords total, $practiceCount practice)",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(trialData) { data ->
+                        TrialRecordCard(data)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminStatCard(title: String, value: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun TrialRecordCard(data: TrialData) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Header row: Participant + Condition
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "ID: ${data.participant_id}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (data.practice == 1) MaterialTheme.colorScheme.tertiaryContainer
+                    else if (data.probe_type == "Critical") MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Text(
+                        text = if (data.practice == 1) "Practice" else data.probe_type,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (data.practice == 1) MaterialTheme.colorScheme.onTertiaryContainer
+                        else if (data.probe_type == "Critical") MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Details row 1
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Condition: ${data.group_condition} | List #${data.list_number} (Order: ${data.presentation_order})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Target Pos: #${data.target_position}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Details row 2: Probe & response
+            Text(
+                text = "Asked: '${data.probe_word_asked}' | Selected: '${data.response}' | Acc: ${data.accuracy}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium
+            )
+
+            // Details row 3: RT & Ratings
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "RT: ${data.continue_rt_ms?.let { "${it}ms" } ?: "N/A"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Thinking: ${data.manip_thinking ?: "-"} | Anxiety: ${data.manip_anxiety ?: "-"} | Decision: ${data.data_use_decision ?: "-"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -111,7 +328,7 @@ suspend fun exportDataToCsv(context: Context, data: List<TrialData>) {
                 val file = File(downloadsDir, fileName)
                 file.writeText(csvContent)
             }
-            
+
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, "Exported $fileName to Downloads", Toast.LENGTH_LONG).show()
             }
