@@ -13,6 +13,7 @@ import kotlin.random.Random
 enum class ScreenState {
     WELCOME, CONSENT, INSTRUCTIONS, 
     TRIAL_PRECUE, TRIAL_WORDLIST, TRIAL_DISTRACTOR, TRIAL_PROBE, TRIAL_MANIPULATION_CHECK,
+    PRACTICE_COMPLETE,
     DEBRIEF, FINISHED, ADMIN
 }
 
@@ -155,18 +156,31 @@ class ExperimentViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun saveTrialAndProceed() {
         currentTrialData?.timestampEnd = System.currentTimeMillis()
+        val isPractice = (currentListIndex == 0)
         val builder = currentTrialData
         if (builder != null) {
             val data = builder.build()
             viewModelScope.launch {
                 db.trialDataDao().insertTrialData(data)
                 currentListIndex++
-                startNextTrial()
+                if (isPractice) {
+                    _currentScreen.value = ScreenState.PRACTICE_COMPLETE
+                } else {
+                    startNextTrial()
+                }
             }
         } else {
             currentListIndex++
-            startNextTrial()
+            if (isPractice) {
+                _currentScreen.value = ScreenState.PRACTICE_COMPLETE
+            } else {
+                startNextTrial()
+            }
         }
+    }
+
+    fun continueAfterPractice() {
+        startNextTrial()
     }
 
     fun submitExperiment(dataUseDecision: String) {

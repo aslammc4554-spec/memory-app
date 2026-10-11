@@ -80,6 +80,9 @@ fun ExperimentApp(viewModel: ExperimentViewModel) {
         ScreenState.TRIAL_MANIPULATION_CHECK -> ManipulationCheckScreen(
             onAnswered = { t, a -> viewModel.manipulationCheckAnswered(t, a) }
         )
+        ScreenState.PRACTICE_COMPLETE -> PracticeCompleteScreen(
+            onContinue = { viewModel.continueAfterPractice() }
+        )
         ScreenState.DEBRIEF -> DebriefScreen(
             contactName = viewModel.config.contact_name,
             contactEmail = viewModel.config.contact_email,

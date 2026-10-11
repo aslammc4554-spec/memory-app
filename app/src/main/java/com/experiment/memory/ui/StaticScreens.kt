@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -103,6 +104,25 @@ fun InstructionsScreen(onNext: () -> Unit) {
         Spacer(modifier = Modifier.height(32.dp))
         Button(onClick = onNext) {
             Text("Start Practice")
+        }
+    }
+}
+
+@Composable
+fun PracticeCompleteScreen(onContinue: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "The practice is now complete. The real experiment begins next. There will be 8 lists. Click Continue when you are ready.",
+            fontSize = 20.sp,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(onClick = onContinue) {
+            Text("Continue")
         }
     }
 }
