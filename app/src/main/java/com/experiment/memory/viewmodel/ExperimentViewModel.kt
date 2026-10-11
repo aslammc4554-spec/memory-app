@@ -4,8 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.experiment.memory.data.*
-import com.google.gson.Gson
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -26,7 +24,6 @@ class ExperimentViewModel(application: Application) : AndroidViewModel(applicati
 
     fun openAdmin() { _currentScreen.value = ScreenState.ADMIN }
     fun closeAdmin() { _currentScreen.value = ScreenState.WELCOME }
-
 
     val participantId = "P-" + java.text.SimpleDateFormat("yyyyMMdd", Locale.US).format(Date()) + "-" + UUID.randomUUID().toString().substring(0, 6).uppercase()
     val groupCondition = if (Random.nextBoolean()) "Predictable" else "Unpredictable"
@@ -66,7 +63,6 @@ class ExperimentViewModel(application: Application) : AndroidViewModel(applicati
     }
     
     private fun loadDefaultWordLists(): WordLists {
-        // Return default word lists here
         return WordLists(
             practice = listOf("Bicycle", "Library", "Pillow", "Toaster", "Sheep", "Wallet", "Ground", "Ladder", "Finger", "Camera"),
             list_1 = listOf("Basket", "Rabbit", "Shirt", "Ankle", "Wheel", "Banana", "Clock", "Doctor", "Grass", "Stapler"),
@@ -95,19 +91,22 @@ class ExperimentViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun startNextTrial() {
-        if (currentListIndex > 8) {
+        if (currentListIndex > 8 || currentListIndex >= listOrder.size) {
             _currentScreen.value = ScreenState.DEBRIEF
             return
         }
         
-        val actualListNum = listOrder[currentListIndex]
+        val actualListNum = listOrder.getOrElse(currentListIndex) { 0 }
+        val targetPos = targetPositions.getOrElse(currentListIndex) { 4 }
+        val probeTp = probeTypes.getOrElse(currentListIndex) { "Control" }
+
         currentTrialData = TrialDataBuilder(
             participantId = participantId,
             groupCondition = groupCondition,
             listNumber = actualListNum,
             presentationOrder = currentListIndex,
-            targetPosition = targetPositions[currentListIndex],
-            probeType = probeTypes[currentListIndex],
+            targetPosition = targetPos,
+            probeType = probeTp,
             practice = if (currentListIndex == 0) 1 else 0,
             mode = config.mode,
             timestampStart = System.currentTimeMillis()
@@ -156,9 +155,15 @@ class ExperimentViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun saveTrialAndProceed() {
         currentTrialData?.timestampEnd = System.currentTimeMillis()
-        val data = currentTrialData!!.build()
-        viewModelScope.launch {
-            db.trialDataDao().insertTrialData(data)
+        val builder = currentTrialData
+        if (builder != null) {
+            val data = builder.build()
+            viewModelScope.launch {
+                db.trialDataDao().insertTrialData(data)
+                currentListIndex++
+                startNextTrial()
+            }
+        } else {
             currentListIndex++
             startNextTrial()
         }

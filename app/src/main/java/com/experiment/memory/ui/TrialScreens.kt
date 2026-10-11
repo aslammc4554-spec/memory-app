@@ -6,18 +6,29 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun PreCueScreen(targetPosition: Int, onFinished: () -> Unit) {
-    LaunchedEffect(Unit) {
-        delay(2000)
-        onFinished()
-    }
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Your speaking position is Word #$targetPosition", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+    Column(
+        modifier = Modifier.fillMaxSize().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Your speaking position is Word #$targetPosition",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(onClick = onFinished) {
+            Text("Continue")
+        }
     }
 }
 
@@ -29,20 +40,32 @@ fun WordListScreen(
     wordIntervalMs: Long,
     onFinished: (Long?, Boolean) -> Unit
 ) {
-    var currentIndex by remember { mutableStateOf(-1) }
-    var continueVisible by remember { mutableStateOf(false) }
-    var targetOnset by remember { mutableStateOf(0L) }
-    var rtMs by remember { mutableStateOf<Long?>(null) }
-    var speakingResponseGiven by remember { mutableStateOf(false) }
+    var currentIndex by remember(words, targetPosition) { mutableStateOf(-1) }
+    var continueVisible by remember(words, targetPosition) { mutableStateOf(false) }
+    var continuePressed by remember(words, targetPosition) { mutableStateOf(false) }
+    var targetOnset by remember(words, targetPosition) { mutableStateOf(0L) }
+    var rtMs by remember(words, targetPosition) { mutableStateOf<Long?>(null) }
+    var speakingResponseGiven by remember(words, targetPosition) { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(words, targetPosition) {
+        currentIndex = -1
+        continueVisible = false
+        continuePressed = false
+        targetOnset = 0L
+        rtMs = null
+        speakingResponseGiven = false
+
         for (i in words.indices) {
             currentIndex = i
             if (i + 1 == targetPosition) {
                 continueVisible = true
                 targetOnset = System.currentTimeMillis()
+                // Wait until the participant clicks Continue
+                snapshotFlow { continuePressed }.first { it }
+                continueVisible = false
+            } else {
+                delay(wordIntervalMs)
             }
-            delay(wordIntervalMs)
         }
         onFinished(rtMs, speakingResponseGiven)
     }
@@ -75,6 +98,7 @@ fun WordListScreen(
                             if (!speakingResponseGiven) {
                                 rtMs = System.currentTimeMillis() - targetOnset
                                 speakingResponseGiven = true
+                                continuePressed = true
                             }
                         },
                         enabled = !speakingResponseGiven
@@ -89,9 +113,10 @@ fun WordListScreen(
 
 @Composable
 fun DistractorScreen(durationMs: Long, onFinished: () -> Unit) {
-    var timeLeft by remember { mutableStateOf(durationMs / 1000) }
+    var timeLeft by remember(durationMs) { mutableStateOf(durationMs / 1000) }
     
-    LaunchedEffect(Unit) {
+    LaunchedEffect(durationMs) {
+        timeLeft = durationMs / 1000
         while (timeLeft > 0) {
             delay(1000)
             timeLeft--

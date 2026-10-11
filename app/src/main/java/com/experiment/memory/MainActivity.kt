@@ -37,6 +37,12 @@ class MainActivity : ComponentActivity() {
 fun ExperimentApp(viewModel: ExperimentViewModel) {
     val currentScreen by viewModel.currentScreen.collectAsState()
 
+    val listIndex = viewModel.currentListIndex
+    val safeListNumber = viewModel.listOrder.getOrElse(listIndex) { 0 }
+    val safeWords = viewModel.wordLists.getList(safeListNumber)
+    val safeTargetPos = viewModel.targetPositions.getOrElse(listIndex) { 4 }
+    val safeProbeType = viewModel.probeTypes.getOrElse(listIndex) { "Control" }
+
     when (currentScreen) {
         ScreenState.WELCOME -> WelcomeScreen(
             onNext = { viewModel.startExperiment() },
@@ -51,12 +57,12 @@ fun ExperimentApp(viewModel: ExperimentViewModel) {
             onNext = { viewModel.startTrials() }
         )
         ScreenState.TRIAL_PRECUE -> PreCueScreen(
-            targetPosition = viewModel.targetPositions[viewModel.currentListIndex],
+            targetPosition = safeTargetPos,
             onFinished = { viewModel.preCueFinished() }
         )
         ScreenState.TRIAL_WORDLIST -> WordListScreen(
-            words = viewModel.wordLists.getList(viewModel.listOrder[viewModel.currentListIndex]),
-            targetPosition = viewModel.targetPositions[viewModel.currentListIndex],
+            words = safeWords,
+            targetPosition = safeTargetPos,
             groupCondition = viewModel.groupCondition,
             wordIntervalMs = viewModel.config.word_interval_ms,
             onFinished = { rt, responded -> viewModel.wordListFinished(rt, responded) }
@@ -66,9 +72,9 @@ fun ExperimentApp(viewModel: ExperimentViewModel) {
             onFinished = { viewModel.distractorFinished() }
         )
         ScreenState.TRIAL_PROBE -> ProbeScreen(
-            words = viewModel.wordLists.getList(viewModel.listOrder[viewModel.currentListIndex]),
-            targetPosition = viewModel.targetPositions[viewModel.currentListIndex],
-            probeType = viewModel.probeTypes[viewModel.currentListIndex],
+            words = safeWords,
+            targetPosition = safeTargetPos,
+            probeType = safeProbeType,
             onAnswered = { asked, optL, optR, resp, acc -> viewModel.probeAnswered(asked, optL, optR, resp, acc) }
         )
         ScreenState.TRIAL_MANIPULATION_CHECK -> ManipulationCheckScreen(

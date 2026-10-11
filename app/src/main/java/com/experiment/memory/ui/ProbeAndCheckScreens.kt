@@ -7,7 +7,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.random.Random
 
 @Composable
 fun ProbeScreen(
@@ -16,7 +15,9 @@ fun ProbeScreen(
     probeType: String,
     onAnswered: (String, String, String, String, Int) -> Unit
 ) {
-    val probeData = remember { generateProbe(words, targetPosition, probeType) }
+    val probeData = remember(words, targetPosition, probeType) {
+        generateProbe(words, targetPosition, probeType)
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
@@ -50,31 +51,34 @@ data class ProbeData(
 )
 
 fun generateProbe(words: List<String>, targetPosition: Int, probeType: String): ProbeData {
-    val targetIndex = targetPosition - 1
-    
+    if (words.size < 2) {
+        return ProbeData("Word", "Answer", "Answer", "Wrong")
+    }
+
+    val targetIndex = (targetPosition - 1).coerceIn(1, words.size - 1)
+
     val testedIndex = if (probeType == "Critical") {
         targetIndex
     } else {
-        // Control: any index from 1 to 9 EXCEPT targetIndex
-        val possibleIndices = (1..9).filter { it != targetIndex }
-        possibleIndices.random()
+        val possibleIndices = (1 until words.size).filter { it != targetIndex }
+        if (possibleIndices.isNotEmpty()) possibleIndices.random() else targetIndex
     }
-    
-    val wordAsked = words[testedIndex]
-    val correctAnswer = words[testedIndex - 1]
-    
+
+    val wordAsked = words.getOrElse(testedIndex) { words.last() }
+    val correctAnswer = words.getOrElse(testedIndex - 1) { words.first() }
+
     val possibleWrong = words.filter { it != correctAnswer && it != wordAsked }
-    val wrongOption = possibleWrong.random()
-    
+    val wrongOption = if (possibleWrong.isNotEmpty()) possibleWrong.random() else "Other"
+
     val options = listOf(correctAnswer, wrongOption).shuffled()
     return ProbeData(wordAsked, correctAnswer, options[0], options[1])
 }
 
 @Composable
 fun ManipulationCheckScreen(onAnswered: (Int, Int) -> Unit) {
-    var thinking by remember { mutableStateOf(0) }
-    var anxiety by remember { mutableStateOf(0) }
-    
+    var thinking by remember(onAnswered) { mutableStateOf(0) }
+    var anxiety by remember(onAnswered) { mutableStateOf(0) }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -82,12 +86,12 @@ fun ManipulationCheckScreen(onAnswered: (Int, Int) -> Unit) {
     ) {
         Text("During this list, how much were you thinking about the word you would have to say aloud?", fontSize = 18.sp)
         RatingScale(selected = thinking, onSelect = { thinking = it })
-        
+
         Spacer(modifier = Modifier.height(32.dp))
-        
+
         Text("During this list, how anxious or on edge did you feel about your upcoming speaking turn?", fontSize = 18.sp)
         RatingScale(selected = anxiety, onSelect = { anxiety = it })
-        
+
         Spacer(modifier = Modifier.height(32.dp))
         Button(
             onClick = { onAnswered(thinking, anxiety) },
