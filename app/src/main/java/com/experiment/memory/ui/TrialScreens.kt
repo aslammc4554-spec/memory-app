@@ -112,10 +112,10 @@ fun WordListScreen(
 }
 
 @Composable
-fun DistractorScreen(durationMs: Long, onFinished: () -> Unit) {
-    var timeLeft by remember(durationMs) { mutableStateOf(durationMs / 1000) }
+fun DistractorScreen(durationMs: Long, startNumber: Int = 100, onFinished: () -> Unit) {
+    var timeLeft by remember(durationMs, startNumber) { mutableStateOf(durationMs / 1000) }
     
-    LaunchedEffect(durationMs) {
+    LaunchedEffect(durationMs, startNumber) {
         timeLeft = durationMs / 1000
         while (timeLeft > 0) {
             delay(1000)
@@ -129,7 +129,7 @@ fun DistractorScreen(durationMs: Long, onFinished: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Count backwards from 100 in steps of 3", fontSize = 24.sp)
+        Text("Count backwards from $startNumber in steps of 3", fontSize = 24.sp)
         Spacer(modifier = Modifier.height(32.dp))
         Text(timeLeft.toString(), fontSize = 48.sp, fontWeight = FontWeight.Bold)
     }

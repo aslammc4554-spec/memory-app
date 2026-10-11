@@ -39,6 +39,11 @@ class ExperimentViewModel(application: Application) : AndroidViewModel(applicati
     var currentTrialData: TrialDataBuilder? = null
     var sessionStartTime = 0L
 
+    val distractorStartNumbers = listOf(50, 70, 100)
+    fun getDistractorStartNumber(index: Int): Int {
+        return distractorStartNumbers.getOrElse(index % distractorStartNumbers.size) { 100 }
+    }
+
     init {
         // Prepare list orders, target positions, probes
         val expLists = (1..8).toList().shuffled()

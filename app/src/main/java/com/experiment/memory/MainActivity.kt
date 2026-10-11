@@ -69,6 +69,7 @@ fun ExperimentApp(viewModel: ExperimentViewModel) {
         )
         ScreenState.TRIAL_DISTRACTOR -> DistractorScreen(
             durationMs = viewModel.config.distractor_duration_ms,
+            startNumber = viewModel.getDistractorStartNumber(listIndex),
             onFinished = { viewModel.distractorFinished() }
         )
         ScreenState.TRIAL_PROBE -> ProbeScreen(
