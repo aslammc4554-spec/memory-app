@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun DebriefScreen(contactName: String, contactEmail: String, onSubmit: (String) -> Unit) {
-    var selectedOption by remember { mutableStateOf<String?>(null) }
     var isSubmitted by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
@@ -98,7 +97,7 @@ fun DebriefScreen(contactName: String, contactEmail: String, onSubmit: (String) 
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Participants were randomly assigned to one of two conditions: a Predictable group (speaking position announced in advance) or an Unpredictable group (speaking position unannounced). We measured recognition memory for words preceding the speaking turn, as well as reaction times and self-reported preparation/anxiety.",
+                            text = "We measured recognition memory for words preceding the speaking turn, as well as reaction times and self-reported preparation/anxiety.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             lineHeight = 22.sp
@@ -120,110 +119,6 @@ fun DebriefScreen(contactName: String, contactEmail: String, onSubmit: (String) 
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "Data-Use Decision",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "Now that you understand the full purpose of the research, please choose whether you consent to your anonymized data being included:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Option 1: Agree
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .clickable { selectedOption = "Agree" },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (selectedOption == "Agree") MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                    ),
-                    border = BorderStroke(
-                        width = if (selectedOption == "Agree") 2.dp else 1.dp,
-                        color = if (selectedOption == "Agree") MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = selectedOption == "Agree",
-                            onClick = { selectedOption = "Agree" }
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "I agree to the use of my data",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "My responses will be included in aggregate research analysis.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Option 2: Withdraw
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .clickable { selectedOption = "Withdraw" },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (selectedOption == "Withdraw") MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
-                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                    ),
-                    border = BorderStroke(
-                        width = if (selectedOption == "Withdraw") 2.dp else 1.dp,
-                        color = if (selectedOption == "Withdraw") MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.outlineVariant
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = selectedOption == "Withdraw",
-                            onClick = { selectedOption = "Withdraw" }
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "I wish to withdraw my data",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "My responses will be flagged as withdrawn and excluded from analysis.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -233,7 +128,7 @@ fun DebriefScreen(contactName: String, contactEmail: String, onSubmit: (String) 
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 ) {
                     Text(
-                        text = "Questions or feedback? Contact $contactName at $contactEmail.",
+                        text = "Questions or feedback? Contact at adithyau2103@gmail.com",
                         modifier = Modifier.padding(14.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -246,12 +141,12 @@ fun DebriefScreen(contactName: String, contactEmail: String, onSubmit: (String) 
 
             Button(
                 onClick = {
-                    if (!isSubmitted && selectedOption != null) {
+                    if (!isSubmitted) {
                         isSubmitted = true
-                        onSubmit(selectedOption!!)
+                        onSubmit("Agree")
                     }
                 },
-                enabled = selectedOption != null && !isSubmitted,
+                enabled = !isSubmitted,
                 modifier = Modifier
                     .fillMaxWidth()
                     .widthIn(max = 480.dp)
@@ -259,7 +154,7 @@ fun DebriefScreen(contactName: String, contactEmail: String, onSubmit: (String) 
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = "Submit Decision",
+                    text = "Finish Study",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )

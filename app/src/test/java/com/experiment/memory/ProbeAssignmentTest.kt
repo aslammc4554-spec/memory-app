@@ -121,7 +121,8 @@ class ProbeAssignmentTest {
 
             assertEquals("Critical probe must ask about the target word", targetWord, probe.wordAsked)
             assertEquals("Critical probe correct answer must be targetPosition - 1 word", expectedPrecedingWord, probe.correctAnswer)
-            assertTrue("Options must contain the correct answer", probe.leftOption == expectedPrecedingWord || probe.rightOption == expectedPrecedingWord)
+            assertEquals("Critical probe must present exactly 4 options", 4, probe.options.size)
+            assertTrue("Options must contain the correct answer", probe.options.contains(expectedPrecedingWord))
         }
     }
 
@@ -145,11 +146,14 @@ class ProbeAssignmentTest {
             val testedIndex = sampleWordList.indexOf(probe.wordAsked)
             assertTrue("Tested position must be between positions 2 and 10 (index 1..9)", testedIndex in 1..9)
             assertEquals("Correct answer must be the word immediately preceding tested word", sampleWordList[testedIndex - 1], probe.correctAnswer)
+            assertEquals("Control probe must present exactly 4 options", 4, probe.options.size)
+            assertTrue("Options must contain the correct answer", probe.options.contains(probe.correctAnswer))
         }
     }
 
     /**
-     * Requirement 5: Both answer options come from the same list and are distinct.
+     * Requirement 5: Exactly 4 answer options, all distinct, from the same list where possible,
+     * with exactly one correct answer and three distractors.
      */
     @Test
     fun testProbeAnswerOptionsAreDistinctAndFromSameList() {
@@ -158,11 +162,94 @@ class ProbeAssignmentTest {
             for (probeType in listOf("Critical", "Control")) {
                 val probe = generateProbe(sampleWordList, targetPosition = 4, probeType = probeType, random = rng)
 
-                assertNotEquals("Answer options must be distinct", probe.leftOption, probe.rightOption)
-                assertTrue("Left option must come from the list", sampleWordList.contains(probe.leftOption))
-                assertTrue("Right option must come from the list", sampleWordList.contains(probe.rightOption))
-                assertTrue("One of the options must be the correct answer", probe.leftOption == probe.correctAnswer || probe.rightOption == probe.correctAnswer)
+                assertEquals("Must have exactly 4 answer options", 4, probe.options.size)
+                assertEquals("All 4 answer options must be distinct", 4, probe.options.distinct().size)
+
+                for (opt in probe.options) {
+                    assertTrue("Option $opt must come from the word list", sampleWordList.contains(opt))
+                }
+
+                assertTrue("Options must contain the correct answer", probe.options.contains(probe.correctAnswer))
+                assertEquals("Exactly one option must match the correct answer", 1, probe.options.count { it == probe.correctAnswer })
+
+                val distractors = probe.options.filter { it != probe.correctAnswer }
+                assertEquals("Must have exactly 3 distractors", 3, distractors.size)
+                assertFalse("Distractors must not contain the asked word", distractors.contains(probe.wordAsked))
             }
+        }
+    }
+
+    /**
+     * Requirement: Verify accuracy calculation with 4 choices.
+     */
+    @Test
+    fun testAccuracyCalculationWithFourChoices() {
+        val probe = generateProbe(sampleWordList, targetPosition = 5, probeType = "Critical")
+        assertEquals(4, probe.options.size)
+
+        // Choosing correct answer yields accuracy = 1
+        val correctChoice = probe.correctAnswer
+        val correctAcc = if (correctChoice == probe.correctAnswer) 1 else 0
+        assertEquals(1, correctAcc)
+
+        // Choosing any of the 3 distractors yields accuracy = 0
+        val distractors = probe.options.filter { it != probe.correctAnswer }
+        assertEquals(3, distractors.size)
+        for (distractor in distractors) {
+            val distractorAcc = if (distractor == probe.correctAnswer) 1 else 0
+            assertEquals(0, distractorAcc)
+        }
+    }
+
+    /**
+     * Requirement: Distractor generation edge cases where suitable words are limited.
+     */
+    @Test
+    fun testDistractorGenerationLimitedEdgeCases() {
+        // Edge case 1: Minimal list with only 2 words
+        val twoWordList = listOf("First", "Second")
+        val probeTwo = generateProbe(twoWordList, targetPosition = 2, probeType = "Critical")
+        assertEquals(4, probeTwo.options.size)
+        assertEquals(4, probeTwo.options.distinct().size)
+        assertTrue(probeTwo.options.contains(probeTwo.correctAnswer))
+        assertEquals(1, probeTwo.options.count { it == probeTwo.correctAnswer })
+
+        // Edge case 2: List with 3 words
+        val threeWordList = listOf("Alpha", "Beta", "Gamma")
+        val probeThree = generateProbe(threeWordList, targetPosition = 2, probeType = "Critical")
+        assertEquals(4, probeThree.options.size)
+        assertEquals(4, probeThree.options.distinct().size)
+        assertTrue(probeThree.options.contains(probeThree.correctAnswer))
+        assertEquals(1, probeThree.options.count { it == probeThree.correctAnswer })
+
+        // Edge case 3: List with duplicate words
+        val dupList = listOf("Same", "Same", "Same", "Same", "Target")
+        val probeDup = generateProbe(dupList, targetPosition = 5, probeType = "Critical")
+        assertEquals(4, probeDup.options.size)
+        assertEquals(4, probeDup.options.distinct().size)
+        assertTrue(probeDup.options.contains(probeDup.correctAnswer))
+    }
+
+    /**
+     * Requirement: Randomize answer positions across all four positions.
+     */
+    @Test
+    fun testRandomizationOfAnswerPositionsAcrossTrials() {
+        val positionCounts = mutableMapOf<Int, Int>()
+        for (pos in 0..3) positionCounts[pos] = 0
+
+        for (seed in 1..200) {
+            val rng = Random(seed)
+            val probe = generateProbe(sampleWordList, targetPosition = 6, probeType = "Critical", random = rng)
+            val correctIndex = probe.options.indexOf(probe.correctAnswer)
+            assertTrue("Correct index must be 0, 1, 2, or 3", correctIndex in 0..3)
+            positionCounts[correctIndex] = positionCounts.getValue(correctIndex) + 1
+        }
+
+        // Each of the 4 positions must be used across 200 random seeds (expected ~50 each)
+        for (pos in 0..3) {
+            val count = positionCounts.getValue(pos)
+            assertTrue("Position $pos should be selected multiple times (was $count)", count > 20)
         }
     }
 

@@ -28,6 +28,8 @@ fun ProbeScreen(
         generateProbe(words, targetPosition, probeType)
     }
     var isSubmitted by remember(words, targetPosition, probeType) { mutableStateOf(false) }
+    var selectedWord by remember(words, targetPosition, probeType) { mutableStateOf<String?>(null) }
+    val scrollState = rememberScrollState()
 
     Box(
         modifier = Modifier
@@ -37,32 +39,21 @@ fun ProbeScreen(
     ) {
         Column(
             modifier = Modifier
-                .padding(24.dp)
-                .widthIn(max = 560.dp),
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.padding(bottom = 16.dp)
-            ) {
-                Text(
-                    text = "Memory Recognition",
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 500.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Column(
-                    modifier = Modifier.padding(28.dp),
+                    modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -88,7 +79,7 @@ fun ProbeScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
                         text = "Tap the correct word below:",
@@ -98,64 +89,86 @@ fun ProbeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Two distinct choice option cards
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            // Responsive 2 × 2 grid of 4 answer options
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 500.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Left Option Button
-                Button(
-                    onClick = {
-                        if (!isSubmitted) {
-                            isSubmitted = true
-                            val acc = if (probeData.leftOption == probeData.correctAnswer) 1 else 0
-                            onAnswered(probeData.wordAsked, probeData.leftOption, probeData.rightOption, probeData.leftOption, acc)
-                        }
-                    },
-                    enabled = !isSubmitted,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 64.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                // Row 1: Top-Left (option 0) & Top-Right (option 1)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = probeData.leftOption,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold
+                    OptionButton(
+                        word = probeData.options.getOrElse(0) { "" },
+                        isSelected = selectedWord == probeData.options.getOrElse(0) { "" },
+                        isEnabled = !isSubmitted,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            if (!isSubmitted) {
+                                isSubmitted = true
+                                val chosen = probeData.options.getOrElse(0) { "" }
+                                selectedWord = chosen
+                                val acc = if (chosen == probeData.correctAnswer) 1 else 0
+                                onAnswered(probeData.wordAsked, probeData.optionsShownLeft, probeData.optionsShownRight, chosen, acc)
+                            }
+                        }
+                    )
+                    OptionButton(
+                        word = probeData.options.getOrElse(1) { "" },
+                        isSelected = selectedWord == probeData.options.getOrElse(1) { "" },
+                        isEnabled = !isSubmitted,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            if (!isSubmitted) {
+                                isSubmitted = true
+                                val chosen = probeData.options.getOrElse(1) { "" }
+                                selectedWord = chosen
+                                val acc = if (chosen == probeData.correctAnswer) 1 else 0
+                                onAnswered(probeData.wordAsked, probeData.optionsShownLeft, probeData.optionsShownRight, chosen, acc)
+                            }
+                        }
                     )
                 }
 
-                // Right Option Button
-                Button(
-                    onClick = {
-                        if (!isSubmitted) {
-                            isSubmitted = true
-                            val acc = if (probeData.rightOption == probeData.correctAnswer) 1 else 0
-                            onAnswered(probeData.wordAsked, probeData.leftOption, probeData.rightOption, probeData.rightOption, acc)
-                        }
-                    },
-                    enabled = !isSubmitted,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 64.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                // Row 2: Bottom-Left (option 2) & Bottom-Right (option 3)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = probeData.rightOption,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold
+                    OptionButton(
+                        word = probeData.options.getOrElse(2) { "" },
+                        isSelected = selectedWord == probeData.options.getOrElse(2) { "" },
+                        isEnabled = !isSubmitted,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            if (!isSubmitted) {
+                                isSubmitted = true
+                                val chosen = probeData.options.getOrElse(2) { "" }
+                                selectedWord = chosen
+                                val acc = if (chosen == probeData.correctAnswer) 1 else 0
+                                onAnswered(probeData.wordAsked, probeData.optionsShownLeft, probeData.optionsShownRight, chosen, acc)
+                            }
+                        }
+                    )
+                    OptionButton(
+                        word = probeData.options.getOrElse(3) { "" },
+                        isSelected = selectedWord == probeData.options.getOrElse(3) { "" },
+                        isEnabled = !isSubmitted,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            if (!isSubmitted) {
+                                isSubmitted = true
+                                val chosen = probeData.options.getOrElse(3) { "" }
+                                selectedWord = chosen
+                                val acc = if (chosen == probeData.correctAnswer) 1 else 0
+                                onAnswered(probeData.wordAsked, probeData.optionsShownLeft, probeData.optionsShownRight, chosen, acc)
+                            }
+                        }
                     )
                 }
             }
@@ -163,11 +176,76 @@ fun ProbeScreen(
     }
 }
 
+@Composable
+private fun OptionButton(
+    word: String,
+    isSelected: Boolean,
+    isEnabled: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val containerColor = if (isSelected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    val contentColor = if (isSelected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    val borderColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant
+    }
+
+    Button(
+        onClick = onClick,
+        enabled = isEnabled,
+        modifier = modifier.heightIn(min = 60.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = containerColor,
+            disabledContentColor = contentColor
+        ),
+        border = BorderStroke(1.5.dp, borderColor),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
+    ) {
+        Text(
+            text = word,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
 data class ProbeData(
     val wordAsked: String,
     val correctAnswer: String,
-    val leftOption: String,
-    val rightOption: String
+    val options: List<String>
+) {
+    constructor(wordAsked: String, correctAnswer: String, leftOption: String, rightOption: String) :
+        this(wordAsked, correctAnswer, listOf(leftOption, rightOption))
+
+    val optionsShownLeft: String get() = if (options.size >= 4) "${options[0]} | ${options[2]}" else leftOption
+    val optionsShownRight: String get() = if (options.size >= 4) "${options[1]} | ${options[3]}" else rightOption
+
+    val leftOption: String get() = options.getOrElse(0) { "" }
+    val rightOption: String get() = options.getOrElse(1) { "" }
+}
+
+private val FALLBACK_DISTRACTORS = listOf(
+    "Apple", "Bicycle", "Clock", "Daisy", "Earth",
+    "Folder", "Garlic", "House", "Jacket", "Lemon",
+    "Mirror", "Paper", "Rabbit", "Silver", "Window",
+    "Pencil", "Orange", "River", "Garden", "Market"
 )
 
 fun generateProbe(
@@ -177,7 +255,14 @@ fun generateProbe(
     random: Random = Random.Default
 ): ProbeData {
     if (words.size < 2) {
-        return ProbeData("Word", "Answer", "Answer", "Wrong")
+        val wordAsked = words.firstOrNull() ?: "Target"
+        val correctAnswer = "Answer"
+        val distractors = FALLBACK_DISTRACTORS
+            .filter { it != correctAnswer && it != wordAsked }
+            .shuffled(random)
+            .take(3)
+        val opts = (listOf(correctAnswer) + distractors).shuffled(random)
+        return ProbeData(wordAsked, correctAnswer, opts)
     }
 
     val targetIndex = (targetPosition - 1).coerceIn(1, words.size - 1)
@@ -192,11 +277,33 @@ fun generateProbe(
     val wordAsked = words.getOrElse(testedIndex) { words.last() }
     val correctAnswer = words.getOrElse(testedIndex - 1) { words.first() }
 
-    val possibleWrong = words.filter { it != correctAnswer && it != wordAsked }
-    val wrongOption = if (possibleWrong.isNotEmpty()) possibleWrong.random(random) else "Other"
+    // Collect candidate distractors from the same list, excluding correct answer and target word
+    val candidateDistractors = words
+        .filter { it != correctAnswer && it != wordAsked }
+        .distinct()
+        .shuffled(random)
+        .toMutableList()
 
-    val options = listOf(correctAnswer, wrongOption).shuffled(random)
-    return ProbeData(wordAsked, correctAnswer, options[0], options[1])
+    val chosenDistractors = mutableListOf<String>()
+    for (cand in candidateDistractors) {
+        if (chosenDistractors.size == 3) break
+        if (!chosenDistractors.contains(cand)) {
+            chosenDistractors.add(cand)
+        }
+    }
+
+    // In edge cases where words in list are fewer than needed, backfill with fallback words
+    if (chosenDistractors.size < 3) {
+        for (fallback in FALLBACK_DISTRACTORS.shuffled(random)) {
+            if (chosenDistractors.size == 3) break
+            if (fallback != correctAnswer && fallback != wordAsked && !chosenDistractors.contains(fallback)) {
+                chosenDistractors.add(fallback)
+            }
+        }
+    }
+
+    val options = (listOf(correctAnswer) + chosenDistractors).shuffled(random)
+    return ProbeData(wordAsked, correctAnswer, options)
 }
 
 @Composable
@@ -264,15 +371,9 @@ fun ManipulationCheckScreen(onAnswered: (Int, Int) -> Unit) {
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = "1. Speaking Preparation",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "During this list, how much were you thinking about the word you would have to say aloud?",
+                            text = "While viewing the list, how much did you think about the word you had to say aloud?",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Medium
@@ -291,15 +392,9 @@ fun ManipulationCheckScreen(onAnswered: (Int, Int) -> Unit) {
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = "2. Anticipatory Anxiety",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "During this list, how anxious or on edge did you feel about your upcoming speaking turn?",
+                            text = "During the list, how anxious or on edge did you feel about your upcoming speaking turn?",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Medium

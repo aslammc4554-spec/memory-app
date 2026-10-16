@@ -297,8 +297,8 @@ fun ConsentScreen(contactName: String, contactEmail: String, onConsent: () -> Un
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         ConsentSection(
-                            title = "Contact",
-                            content = "Study conducted by $contactName. If you have questions, please reach out to $contactEmail."
+                            title="",
+                            content = "This study is conducted by first-year psychology master's students of Delhi University."
                         )
                     }
                 }
@@ -436,84 +436,36 @@ fun InstructionsScreen(onNext: () -> Unit) {
                     .widthIn(max = 640.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                ) {
-                    Text(
-                        text = "Procedure & Steps",
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
                 Text(
-                    text = "Experiment Instructions",
+                    text = "Instructions",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onBackground
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Please review the steps below before starting the practice trial.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-
                 Spacer(modifier = Modifier.height(24.dp))
-
-                InstructionStepCard(
-                    stepNumber = "1",
-                    title = "Word Presentation",
-                    description = "Words will appear one by one in the center of the screen. Pay close attention to each word."
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                InstructionStepCard(
-                    stepNumber = "2",
-                    title = "Read Aloud & Tap Continue",
-                    description = "When indicated, read your assigned word aloud clearly. Immediately tap the 'Continue' button to proceed."
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                InstructionStepCard(
-                    stepNumber = "3",
-                    title = "Distractor Counting Task",
-                    description = "After the word list finishes, count backwards in steps of 3 out loud from the starting number shown."
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                InstructionStepCard(
-                    stepNumber = "4",
-                    title = "Memory Question & Ratings",
-                    description = "Select which word appeared immediately before a target word, then answer two brief rating scales."
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
-                    Text(
-                        text = "You will complete one practice list first to become comfortable with the timing and tasks.",
-                        modifier = Modifier.padding(14.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center
-                    )
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            text = "Words will appear one by one in the center of the screen. You should pay close attention to each word. When indicated, read your assigned word aloud clearly and tap 'Continue' to proceed.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            lineHeight = 24.sp
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "You will complete one practice trial first to become comfortable with the timing and tasks.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 22.sp
+                        )
+                    }
                 }
             }
 
@@ -531,51 +483,6 @@ fun InstructionsScreen(onNext: () -> Unit) {
                     text = "Start Practice",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun InstructionStepCard(stepNumber: String, title: String, description: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stepNumber,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(14.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp
                 )
             }
         }
